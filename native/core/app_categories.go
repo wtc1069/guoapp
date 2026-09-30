@@ -63,6 +63,12 @@ func validNativeCategory(source, category string) bool {
 		return validYeguoCategory(category)
 	case sourceDSD:
 		return webProviderNumericID.MatchString(category)
+	case sourceSorani:
+		return validSoraniCategory(category)
+	case sourceGuipian:
+		return validGuipianCategory(category)
+	case sourceHanxiaoquan:
+		return validHanxiaoquanCategory(category)
 	}
 	if isDuanjuProviderSource(source) {
 		return validDuanjuCategory(source, category)
@@ -126,6 +132,12 @@ func (engine *nativeEngine) nativeCategories(ctx context.Context, source string,
 		if err == nil {
 			all = append(all, categories...)
 		}
+	case sourceSorani:
+		all = append(all, d.fetchSoraniCategories()...)
+	case sourceGuipian:
+		all = append(all, d.fetchGuipianCategories()...)
+	case sourceHanxiaoquan:
+		all = append(all, d.fetchHanxiaoquanCategories()...)
 	default:
 		if isDuanjuProviderSource(source) {
 			var categories []nativeCategory

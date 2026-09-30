@@ -9,7 +9,13 @@ class SourceSite {
   final String description;
   bool get onlineSearch => id == 'hongguo' || pagedSearch;
   bool get pagedSearch =>
-      id == 'huangju' || id == 'yeguo' || id == 'dsd' || duanjuPaged;
+      id == 'huangju' ||
+      id == 'yeguo' ||
+      id == 'dsd' ||
+      id == 'sorani' ||
+      id == 'guipian' ||
+      id == 'hanxiaoquan' ||
+      duanjuPaged;
   bool get duanjuPaged => const {
     'yaguo',
     'guanguo',
@@ -35,6 +41,13 @@ class SourceSite {
 
   static const hongguo = SourceSite('hongguo', '红果', '短剧 · 漫剧 · AI 剧');
   static const dsd = SourceSite('dsd', '帝果', '分类视频 · 在线搜索');
+  static const sorani = SourceSite('sorani', '青空', '番剧 · 剧场动画 · 特摄');
+  static const guipian = SourceSite('guipian', '鬼片', '鬼片 · 电视剧 · 动漫');
+  static const hanxiaoquan = SourceSite(
+    'hanxiaoquan',
+    '韩小圈',
+    '韩剧 · 韩国电影 · 综艺动漫',
+  );
   static const duanjuValues = [
     SourceSite('yaguo', '芽果', '星芽短剧 · 登录接口'),
     SourceSite('maoguo', '猫果', '七猫短剧 · 签名接口'),
@@ -58,6 +71,9 @@ class SourceSite {
     SourceSite('huangguo-video', '黄果视频', '视频剧集'),
     SourceSite('huangguoai', '黄果 AI', 'AI 短剧'),
     SourceSite('cloudfront', '黄果旧版', '旧 API 剧库'),
+    sorani,
+    guipian,
+    hanxiaoquan,
     ...duanjuValues,
   ];
   static const allValues = [
@@ -69,6 +85,9 @@ class SourceSite {
     SourceSite('huangguo-video', '黄果视频', '视频剧集'),
     SourceSite('huangguoai', '黄果 AI', 'AI 短剧'),
     SourceSite('cloudfront', '黄果旧版', '旧 API 剧库'),
+    sorani,
+    guipian,
+    hanxiaoquan,
     ...duanjuValues,
   ];
   static const values = allSourcesEnabled ? knownValues : [hongguo];
