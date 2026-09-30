@@ -54,6 +54,9 @@ def build_core(variant=BuildVariant()):
 
 def sign_bundle(application):
     frameworks = application / 'Contents' / 'Frameworks'
+    for junk in sorted(application.rglob('*')):
+        if junk.is_file() and (junk.name.startswith('._') or junk.name == '.DS_Store'):
+            junk.unlink()
     for leftover in sorted(frameworks.rglob('_Resources')):
         shutil.rmtree(leftover)
     for framework in sorted(frameworks.glob('*.framework')):
