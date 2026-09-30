@@ -32,9 +32,12 @@ func newDNSResolver(transport *http.Transport) *dnsResolver {
 	lookupTransport := transport.Clone()
 	lookupTransport.TLSClientConfig = nil
 	return &dnsResolver{
-		client: &http.Client{Transport: lookupTransport, Timeout: 4 * time.Second},
+		client: &http.Client{Transport: lookupTransport, Timeout: 2 * time.Second},
 		cache:  map[string]dnsCacheEntry{}, inFlight: map[string]chan struct{}{},
-		endpoints: []string{"https://dns.alidns.com/resolve", "https://dns.google/resolve"},
+		endpoints: []string{
+			"https://doh.pub/resolve",
+			"https://dns.alidns.com/resolve",
+		},
 	}
 }
 
@@ -145,6 +148,25 @@ func (resolver *dnsResolver) query(ctx context.Context, host, subnet string) (dn
 		}
 		entry.expires = time.Now().Add(time.Duration(ttl) * time.Second)
 		return entry, nil
+	}
+	sysCtx, sysCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer sysCancel()
+	ips, sysErr := net.DefaultResolver.LookupIP(sysCtx, "ip4", host)
+	if sysErr == nil && len(ips) > 0 {
+		var addrs []string
+		for _, ip := range ips {
+			if ip4 := ip.To4(); ip4 != nil {
+				addrs = append(addrs, ip4.String())
+			}
+		}
+		if len(addrs) > 0 {
+			if valErr := validateCDNAddresses(addrs); valErr == nil {
+				return dnsCacheEntry{
+					addresses: addrs,
+					expires:   time.Now().Add(5 * time.Minute),
+				}, nil
+			}
+		}
 	}
 	return dnsCacheEntry{}, lastErr
 }
