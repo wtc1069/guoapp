@@ -1,6 +1,6 @@
 # 红果鉴 / 真果鉴
 
-Flutter 多端独立短剧应用，原名“短剧库 APP”。站源请求、解析、下载和播放均在设备上完成，不依赖旧项目或自建服务。当前源码版本：**0.2.55+61（未验证开发快照）**。本轮补齐河果与星果的在线搜索：河果搜索不走页面 HTML，真实接口是 `POST /seo/video/6007`（JSON 正文 `{"sourceType":1,"keyword":…,"index":…}`，响应在 `data.bookList`，带 `isMore` / `totalSize` 可供翻页），参数与路径取自站点 Next.js 的 `search` 分包，现已实测返回结果。星果搜索接口为 `GET /novel-api/basedata/book/searchBook`，关键词参数名是 `key`（不是 `keyword` / `searchKey`，用错会返回 `参数错误`），响应在 `data.datalist` 且支持 `pageNum` 翻页。排查过程中确认 `safe filter error` 的 `-6001`（GET）与 `-4003`（POST）都只是网关拦截，同一路径下 `-4005` 才代表路由不存在、`-4002` 代表路由存在但缺少参数，按这个判据枚举才定位到真实接口。同时修掉猫果搜索结果标题带高亮标记的问题：上游在 `playlet_name` 里回填 `<font color='#ff4242'>都</font>` 一类片段，现统一去标签并还原实体，标题恢复为「都市无上仙尊（都市之无双仙尊）」。十二个站源里除皮果受 Cloudflare 校验限制外，其余十一个均已实测可搜索。本轮补齐弹幕表情：红果弹幕文本把 `[笑哭]` 一类表情代码直接内嵌在正文字段里，接口既没有独立的表情字段，也没有可取的表情清单接口，实测四个候选路径均返回 404，因此在 Go 原生核心按内置对照表转换后再交给界面；未收录的代码原样保留，不会误显示成其他表情。同时修正截断逻辑，在变体选择符和零宽连接符之前回退，避免组合表情被截成缺字符号。同一批修改已同步到 `../短剧库` 和 `../果果剧库`；十二个短剧站源也已移植到多站源版 `../短剧库`，红果专用版 `../果果剧库` 按该项目的来源限制只接收弹幕表情修改。本轮按用户指定目录接入十二个短剧站源（芽果、猫果、饭果、观果、河果、星果、花果、牛果、网果、发果、皮果、伍果），全部在 Go 原生核心内请求和解析，并就文本接口做了探测；详见“十二个新增短剧站源”。上一轮新增管理员“启动时需要登录”开关：设置管理员密码后仍默认保持启动登录，管理员可在用户管理中关闭；关闭后保留密码保护，只在切换用户或手动锁定时验证。上一轮核对剧果、野果、帝果的目录分页、榜单和播放解析链路：多站源更新默认批量 50 页，野果目录 / 搜索 / 播放使用 POST，剧果保留 CloudFront 签名 Cookie 到播放列表、分片、预加载和下载，帝果 vplayer 签名失败不再静默回退到未签名地址。野果运行时固定优先使用当前线路 `https://analyze.buxefaex.cc/`，通过 `https://ygdj7.com/` 发现新线路；旧域名仅保留缓存与身份兼容识别，不再主动作为接口回退地址；首页和推荐卡片点击后在当前页读取详情，成功后直接进入播放器，避免“正在进入播放”的中间页闪现；站源管理列表底部避让系统虚拟导航栏，避免最后一组站源被遮挡；播放页轻量 Tab 与紧凑选集网格之间补充少量间距，避免按钮贴得过紧；修复野果线路发现正则在原生核心初始化时触发 Go panic 导致 Android 启动闪退的问题。本轮只维护源码和定向测试，不打包 APK、不安装设备、不做真实播放验收。
+Flutter 多端独立短剧应用，原名“短剧库 APP”。站源请求、解析、下载和播放均在设备上完成，不依赖旧项目或自建服务。当前源码版本：**0.2.56+62（未验证开发快照）**。本轮新增 macOS 桌面端（Go 核心通用 dylib、`build_macos.py` 打包、Actions macos 构建），接入青空（sorani）、鬼片（guipian）、韩小圈（hanxiaoquan）三个站源，并把设备内流服务的播放代理升级为嗅探式 HLS 识别：上游未按扩展名或 Content-Type 标注的播放列表会先探测 `#EXTM3U` 头再重写，实际为 MP4 等普通二进制流时不再误报 502「播放列表无效」，无缝回退为直通输出；代理上游失败记录诊断事件并携带 `X-App-Error` 头，DoH 解析失败时回退系统 DNS 兜底。Actions 修复 Windows 构建（钉回 windows-2022、自装 MinGW 13.2.0、脚本统一 UTF-8 读版本号、系统运行库安装目标改为组件库目录）与 Android 构建（sdkmanager 补 PATH、预接受许可证），检查任务不再阻断出包，暂停期间的测试降级为不阻断；新增 macOS 构建产物和从指定 run 发布 Release、未签名 IPA 转换两个手动工作流。上述内容均为源码级实现，未做设备验收。0.2.55 补齐河果与星果的在线搜索：河果搜索不走页面 HTML，真实接口是 `POST /seo/video/6007`（JSON 正文 `{"sourceType":1,"keyword":…,"index":…}`，响应在 `data.bookList`，带 `isMore` / `totalSize` 可供翻页），参数与路径取自站点 Next.js 的 `search` 分包，现已实测返回结果。星果搜索接口为 `GET /novel-api/basedata/book/searchBook`，关键词参数名是 `key`（不是 `keyword` / `searchKey`，用错会返回 `参数错误`），响应在 `data.datalist` 且支持 `pageNum` 翻页。排查过程中确认 `safe filter error` 的 `-6001`（GET）与 `-4003`（POST）都只是网关拦截，同一路径下 `-4005` 才代表路由不存在、`-4002` 代表路由存在但缺少参数，按这个判据枚举才定位到真实接口。同时修掉猫果搜索结果标题带高亮标记的问题：上游在 `playlet_name` 里回填 `<font color='#ff4242'>都</font>` 一类片段，现统一去标签并还原实体，标题恢复为「都市无上仙尊（都市之无双仙尊）」。十二个站源里除皮果受 Cloudflare 校验限制外，其余十一个均已实测可搜索。本轮补齐弹幕表情：红果弹幕文本把 `[笑哭]` 一类表情代码直接内嵌在正文字段里，接口既没有独立的表情字段，也没有可取的表情清单接口，实测四个候选路径均返回 404，因此在 Go 原生核心按内置对照表转换后再交给界面；未收录的代码原样保留，不会误显示成其他表情。同时修正截断逻辑，在变体选择符和零宽连接符之前回退，避免组合表情被截成缺字符号。同一批修改已同步到 `../短剧库` 和 `../果果剧库`；十二个短剧站源也已移植到多站源版 `../短剧库`，红果专用版 `../果果剧库` 按该项目的来源限制只接收弹幕表情修改。本轮按用户指定目录接入十二个短剧站源（芽果、猫果、饭果、观果、河果、星果、花果、牛果、网果、发果、皮果、伍果），全部在 Go 原生核心内请求和解析，并就文本接口做了探测；详见“十二个新增短剧站源”。上一轮新增管理员“启动时需要登录”开关：设置管理员密码后仍默认保持启动登录，管理员可在用户管理中关闭；关闭后保留密码保护，只在切换用户或手动锁定时验证。上一轮核对剧果、野果、帝果的目录分页、榜单和播放解析链路：多站源更新默认批量 50 页，野果目录 / 搜索 / 播放使用 POST，剧果保留 CloudFront 签名 Cookie 到播放列表、分片、预加载和下载，帝果 vplayer 签名失败不再静默回退到未签名地址。野果运行时固定优先使用当前线路 `https://analyze.buxefaex.cc/`，通过 `https://ygdj7.com/` 发现新线路；旧域名仅保留缓存与身份兼容识别，不再主动作为接口回退地址；首页和推荐卡片点击后在当前页读取详情，成功后直接进入播放器，避免“正在进入播放”的中间页闪现；站源管理列表底部避让系统虚拟导航栏，避免最后一组站源被遮挡；播放页轻量 Tab 与紧凑选集网格之间补充少量间距，避免按钮贴得过紧；修复野果线路发现正则在原生核心初始化时触发 Go panic 导致 Android 启动闪退的问题。本轮只维护源码和定向测试，不打包 APK、不安装设备、不做真实播放验收。
 
 按用户 2026-09-21 的要求，继续暂停整体验证。启动、榜单、画质增强、站源改名、画中画、连续播放控制栏、红果系列剧提醒、播放器 Tab 化、首页 / 播放页优化、多站源站源修复和本轮启动登录开关均保留未验证快照状态；本轮只执行源码级定向检查，未完成真实设备视觉验收、Release APK、IPA 或真实站源播放验收。历史版本的检查记录不能作为本轮新增功能的验收结论。
 
@@ -119,6 +119,10 @@ Flutter 多端独立短剧应用，原名“短剧库 APP”。站源请求、�
 猫果的目录、详情和搜索各自使用不同的签名串，搜索签名按参考脚本顺序为 `extend=page=1read_preference=0track_id=<设备 ID>wd=<关键词><密钥>`，把密钥放到关键词之前会返回“验签失败”。部分站源的搜索页与首页使用完全不同的卡片结构：伍果和网果的搜索页卡片类名不同，发果的搜索页类名是随机串，因此网页族在类名匹配失败时会回退为按详情链接锚点收集卡片，避免随机类名导致搜索无结果。
 
 牛果的接口响应按实际请求 URI 的前 16 字节做 AES-ECB 解密，密钥随参数顺序变化，因此必须由最终发出的 URI 计算，不能按固定字面量拼接。皮果已加入浏览器指纹传输名单，改用 Chrome 客户端发起请求；它仍被 Cloudflare 校验拦截，说明该校验需要真实浏览器执行，当前实现不做规避。
+
+### 青空、鬼片与韩小圈站源
+
+0.2.56 接入三个全站源版新站源，请求与解析均在 Go 原生核心内完成：青空 `sorani`（番剧、剧场动画、特摄，sorani.net 网页 + api.sorani.cc 接口双通道）、鬼片 `guipian`（鬼片、电视剧、动漫，guipianwu.com，MacCMS 风格页面，站点搜索接口已停用，搜索改为在 RSS 最新条目里做标题匹配，命中范围限于最新一批影片）、韩小圈 `hanxiaoquan`（韩剧、韩国电影、综艺动漫，jennyhow.com）。三源均支持分类目录分页、详情与多线路分集解析、在线搜索和播放地址解析，接入站源管理、健康检测、独立更新、详情回写、追剧、观看记录、下载合集与局域网共同站源协商；红果版不包含。本次为源码移植实现，目录、搜索与取流均待集中验收。
 
 ### 主题与导航
 
@@ -671,10 +675,11 @@ SR-1、SR-2 与 SR-4 已接入源码，小型动漫 CNN 也包含在本轮；SR-
 
 | 平台 | 包与状态 |
 | --- | --- |
-| Android 8.0+ 手机 | 源码已更新到 `0.2.44+50`；本轮未打包 APK，ARMv7 / ARM64 / x86_64 构建脚本保留，真实安装与运行仍待验收 |
+| Android 8.0+ 手机 | 源码已更新到 `0.2.56+62`；本轮未打包 APK，ARMv7 / ARM64 / x86_64 构建脚本保留，真实安装与运行仍待验收 |
 | Windows 10/11 x64 | 完整 ZIP 解压后运行 `hongguojian.exe`，全站源版为 `zhenguojian.exe`，保留所有 DLL 和 `data`；局域网原生发现依赖 Windows 10 1903+。完整包运行需 Windows / Actions，新增设备互联未验证 |
-| Android TV | 与手机共用 Android 源码；源码已更新到 `0.2.44+50`；已补强自动识别与电视模式横屏，待电视 / 盒子实机验收；0.2.12 选集 / 设置及 0.2.13 同步仍待集中验证 |
-| iOS 15.1+ | 源码已更新到 `0.2.44+50`；已加入工程、Go 核心链接、媒体依赖、文件管理、系统代理桥接、Bonjour / 局域网权限和构建脚本；0.2.40 起 iOS 播放页禁用 media_kit_video 硬件纹理加速以规避 libmpv OpenGL ES 渲染上下文失败直接退出；待 Xcode 构建与真机验收，没有已签名 IPA |
+| macOS 12+ | 0.2.56 新增；ZIP 解压后运行 `hongguojian.app` / `zhenguojian.app`，Go 核心为 arm64 + x86_64 通用 dylib；未签名，首次打开需执行 `xattr -cr` 移除隔离属性；本地仅完成核心编译，完整应用构建与运行待 Actions / 实机验收 |
+| Android TV | 与手机共用 Android 源码；源码已更新到 `0.2.56+62`；已补强自动识别与电视模式横屏，待电视 / 盒子实机验收；0.2.12 选集 / 设置及 0.2.13 同步仍待集中验证 |
+| iOS 15.1+ | 源码已更新到 `0.2.56+62`；已加入工程、Go 核心链接、媒体依赖、文件管理、系统代理桥接、Bonjour / 局域网权限和构建脚本；0.2.40 起 iOS 播放页禁用 media_kit_video 硬件纹理加速以规避 libmpv OpenGL ES 渲染上下文失败直接退出；待 Xcode 构建与真机验收，没有已签名 IPA |
 
 | 历史版本 0.2.15 | 安装包 | 大小 |
 | --- | --- | --- |
@@ -697,9 +702,10 @@ SR-1、SR-2 与 SR-4 已接入源码，小型动漫 CNN 也包含在本轮；SR-
 | --- | --- | --- |
 | `hongguojian-android` | `zhenguojian-android` | 三种架构 APK 和 SHA256 |
 | `hongguojian-windows` | `zhenguojian-windows` | 完整 ZIP 和 SHA256；从解压包检查原生核心、FFprobe、换封装及播放器启动 |
+| `hongguojian-macos` | `zhenguojian-macos` | macOS 通用 `.app` ZIP 和 SHA256，未签名 |
 | `hongguojian-ios-unsigned` | `zhenguojian-ios-unsigned` | 未签名 `.app` ZIP 和 SHA256，不能直接当已签名 IPA 安装 |
 
-Actions 分别传入默认参数与 `--all-sources` 构建两版，Flutter 和 Go 回归也覆盖两种编译配置。产物保留 14 天，不自动创建 GitHub Release。首次平台构建结果以实际 Actions 输出为准。
+Actions 分别传入默认参数与 `--all-sources` 构建两版，Flutter 和 Go 回归也覆盖两种编译配置。产物保留 14 天。0.2.56 起检查任务（checks）不再阻断出包，暂停验证期间的 Flutter / Go 测试降级为不阻断、结果仅供参考；手动工作流 **Publish release** 可从指定 run 收集 Android、Windows、macOS 产物创建 GitHub Release，**Convert unsigned iOS app to ipa** 可把未签名 `.app` 包成 IPA 上传到指定 Release。首次平台构建结果以实际 Actions 输出为准。
 
 Android 正式发布持续使用同一签名并递增构建号，在仓库 Secrets 配置：
 
@@ -727,7 +733,7 @@ keyPassword=你的密码
 
 ## 开发与构建
 
-Flutter `3.47.4`、Dart `3.12+`、Go `1.24.1+`、Python `3.10+`。Android 需要 JDK 17、SDK 36、NDK `28.2.13676358`；Windows 需要 Visual Studio 的 C++ 桌面组件及 MinGW-w64 x64；iOS 需要 macOS、完整 Xcode 和 CocoaPods。
+Flutter `3.47.4`、Dart `3.12+`、Go `1.24.1+`、Python `3.10+`。Android 需要 JDK 17、SDK 36、NDK `28.2.13676358`；Windows 需要 Visual Studio 的 C++ 桌面组件及 MinGW-w64 x64；macOS 与 iOS 需要 macOS、完整 Xcode 和 CocoaPods。
 
 将 Flutter、Go、Python 加入 PATH，Android 设置 `ANDROID_HOME`。构建脚本对子进程默认设置 `GOPROXY=https://goproxy.cn,direct`、`GOSUMDB=off`，不改全局配置；同名环境变量可覆盖。
 
@@ -761,13 +767,21 @@ python3 scripts/build_ios.py --core-only
 python3 scripts/build_ios.py --core-only --simulator
 ~~~
 
+macOS 未签名构建（arm64 + x86_64 通用核心，打进 `.app` 的 Frameworks 后 Ad Hoc 重签并产出 ZIP）：
+
+~~~sh
+python3 scripts/build_macos.py
+python3 scripts/build_macos.py --all-sources
+python3 scripts/build_macos.py --core-only
+~~~
+
 签名 IPA 使用自己在 Xcode 配置的签名身份、描述文件与 ExportOptions：
 
 ~~~sh
 python3 scripts/build_ios.py --export-options /path/to/ExportOptions.plist
 ~~~
 
-产物在 `dist/android`、`dist/windows`、`dist/ios`，红果版以 `hongguojian-` 开头，全站源版以 `zhenguojian-` 开头。iOS 脚本将 Go 核心生成 XCFramework，再经 CocoaPods 链接并检查 FFI 导出符号；媒体库随应用打包。
+产物在 `dist/android`、`dist/windows`、`dist/macos`、`dist/ios`，红果版以 `hongguojian-` 开头，全站源版以 `zhenguojian-` 开头。iOS 脚本将 Go 核心生成 XCFramework，再经 CocoaPods 链接并检查 FFI 导出符号；媒体库随应用打包。
 
 首次 Android 调试先编译对应架构核心：
 
