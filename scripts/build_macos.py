@@ -52,6 +52,30 @@ def build_core(variant=BuildVariant()):
     return universal
 
 
+MACHO_MAGICS = (b'\xcf\xfa\xed\xfe', b'\xce\xfa\xed\xfe',
+                b'\xfe\xed\xfa\xcf', b'\xfe\xed\xfa\xce', b'\xca\xfe\xba\xbe')
+
+
+def sign_bundle(application):
+    frameworks = application / 'Contents' / 'Frameworks'
+    signed = set()
+    for binary in sorted(frameworks.rglob('*')):
+        if not binary.is_file() or binary.is_symlink():
+            continue
+        resolved = binary.resolve()
+        if resolved in signed:
+            continue
+        with binary.open('rb') as stream:
+            if not stream.read(4) in MACHO_MAGICS:
+                continue
+        signed.add(resolved)
+        run(['codesign', '--force', '--sign', '-', str(binary)])
+    for framework in sorted(frameworks.glob('*.framework')):
+        run(['codesign', '--force', '--sign', '-', str(framework)])
+    run(['codesign', '--force', '--sign', '-', str(application)])
+    run(['codesign', '--verify', '--deep', '--strict', str(application)])
+
+
 def main():
     parser = argparse.ArgumentParser(description='构建红果鉴 / 真果鉴 macOS 核心和应用')
     parser.add_argument('--core-only', action='store_true')
@@ -77,7 +101,7 @@ def main():
     for symbol in ['_DuanjuRequest', '_DuanjuFree']:
         if symbol not in symbols:
             raise SystemExit('macOS 核心缺少 FFI 入口：' + symbol)
-    run(['codesign', '--force', '--sign', '-', str(frameworks / 'libduanju_core.dylib')])
+    sign_bundle(application)
     output = root / 'dist' / 'macos'
     output.mkdir(parents=True, exist_ok=True)
     version = re.search(r'^version:\s*(\S+)', (root / 'pubspec.yaml').read_text(encoding='utf-8'), re.MULTILINE).group(1)
