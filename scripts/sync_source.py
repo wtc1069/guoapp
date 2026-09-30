@@ -31,6 +31,7 @@ EXCLUDED_NAMES = {
     '.DS_Store', 'Thumbs.db', 'local.properties', 'key.properties',
     '.packages', 'GeneratedPluginRegistrant.java', 'Generated.xcconfig',
     'flutter_export_environment.sh', 'GeneratedPluginRegistrant.h', 'GeneratedPluginRegistrant.m',
+    'GeneratedPluginRegistrant.swift',
 }
 EXCLUDED_PATTERNS = (
     '.flutter-plugins*', '*.iml', '*.log', '*.pyc', '*.pyo', '*.class',
@@ -52,6 +53,7 @@ REQUIRED_FILES = {
     'native/go.mod', 'native/go.sum', 'native/bridge/main.go',
     'android/app/build.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties',
     'windows/CMakeLists.txt', 'windows/flutter/CMakeLists.txt',
+    'macos/Runner.xcodeproj/project.pbxproj', 'macos/Runner/Configs/AppInfo.xcconfig',
     '.github/workflows/build.yml', 'scripts/build_native.py',
 }
 

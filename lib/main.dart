@@ -125,7 +125,7 @@ class _AppBootstrapState extends State<AppBootstrap>
             store!,
             kind: device.television
                 ? 'tv'
-                : Platform.isWindows
+                : Platform.isWindows || Platform.isMacOS
                 ? 'computer'
                 : 'phone',
           );
