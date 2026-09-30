@@ -52,26 +52,14 @@ def build_core(variant=BuildVariant()):
     return universal
 
 
-MACHO_MAGICS = (b'\xcf\xfa\xed\xfe', b'\xce\xfa\xed\xfe',
-                b'\xfe\xed\xfa\xcf', b'\xfe\xed\xfa\xce', b'\xca\xfe\xba\xbe')
-
-
 def sign_bundle(application):
     frameworks = application / 'Contents' / 'Frameworks'
-    signed = set()
-    for binary in sorted(frameworks.rglob('*')):
-        if not binary.is_file() or binary.is_symlink():
-            continue
-        resolved = binary.resolve()
-        if resolved in signed:
-            continue
-        with binary.open('rb') as stream:
-            if not stream.read(4) in MACHO_MAGICS:
-                continue
-        signed.add(resolved)
-        run(['codesign', '--force', '--sign', '-', str(binary)])
+    for leftover in sorted(frameworks.rglob('_Resources')):
+        shutil.rmtree(leftover)
     for framework in sorted(frameworks.glob('*.framework')):
-        run(['codesign', '--force', '--sign', '-', str(framework)])
+        run(['codesign', '--force', '--deep', '--sign', '-', str(framework)])
+    for library in sorted(frameworks.glob('*.dylib')):
+        run(['codesign', '--force', '--sign', '-', str(library)])
     run(['codesign', '--force', '--sign', '-', str(application)])
     run(['codesign', '--verify', '--deep', '--strict', str(application)])
 
