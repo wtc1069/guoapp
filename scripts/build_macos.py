@@ -77,7 +77,8 @@ def main():
     for symbol in ['_DuanjuRequest', '_DuanjuFree']:
         if symbol not in symbols:
             raise SystemExit('macOS 核心缺少 FFI 入口：' + symbol)
-    run(['codesign', '--force', '--deep', '--sign', '-', str(application)])
+    run(['codesign', '--force', '--sign', '-', str(frameworks / 'libduanju_core.dylib')])
+    run(['codesign', '--force', '--sign', '-', str(application)])
     output = root / 'dist' / 'macos'
     output.mkdir(parents=True, exist_ok=True)
     version = re.search(r'^version:\s*(\S+)', (root / 'pubspec.yaml').read_text(encoding='utf-8'), re.MULTILINE).group(1)
