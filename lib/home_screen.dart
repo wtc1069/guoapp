@@ -1122,7 +1122,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return PopScope(
           canPop:
               !_selectionMode &&
-              (!television || _tab == 0 && _search.text.isEmpty),
+              !television,
           onPopInvokedWithResult: (didPop, result) {
             if (!didPop) _televisionBack();
           },

@@ -107,6 +107,23 @@ void main() {
     },
   );
 
+  testWidgets('TV back on the home screen does not exit the app', (tester) async {
+    size(tester, const Size(960, 540));
+    final store = await makeStore();
+    await tester.pumpWidget(
+      DuanjuApp(
+        repository: FixtureRepository(),
+        store: store,
+        television: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final dimensions in [const Size(960, 540), const Size(1280, 720)]) {
     testWidgets(
       'TV sources, details, VIP confirmation and back retain remote focus at $dimensions',
