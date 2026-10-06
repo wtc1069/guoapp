@@ -393,6 +393,28 @@ func TestDuanjuMaccmsFallsBackToDetailAnchors(t *testing.T) {
 	}
 }
 
+func TestMaccmsCategoryPageURL(t *testing.T) {
+	base := "https://www.example.cn"
+	cases := []struct {
+		source, reference, want string
+	}{
+		{sourceWuguo, "/index.php/vod/search/class/逆袭.html", base + "/index.php/vod/search/class/%E9%80%86%E8%A2%AD/page/2.html"},
+		{sourceWangguo, "/show/duanju---.html", base + "/show/duanju1---.html"},
+		{sourceFaguo, "/xzyxvt/1zmn.html", base + "/xzyxvt/3zmn.html"},
+	}
+	for _, test := range cases {
+		page := 1
+		if test.source == sourceWuguo {
+			page = 2
+		} else if test.source == sourceFaguo {
+			page = 3
+		}
+		if got := maccmsCategoryPageURL(test.source, base, test.reference, page); got != test.want {
+			t.Fatalf("%s category page URL: got %q, want %q", test.source, got, test.want)
+		}
+	}
+}
+
 func TestDuanjuRejectsMismatchedSourceIDsAndCategories(t *testing.T) {
 	if split, id, ok := splitProviderDramaID("yaguo:51"); !ok || split != sourceYaguo || id != "51" {
 		t.Fatalf("duanju drama id split failed: %q %q %v", split, id, ok)

@@ -24,6 +24,8 @@ func (d *Downloader) fetchDuanjuCategories(ctx context.Context, source string) (
 		return d.fetchYaguoCategories(ctx)
 	case sourceMaoguo:
 		return d.fetchMaoguoCategories(ctx)
+	case sourceHuaguo, sourceWangguo, sourceFaguo, sourceWuguo:
+		return d.fetchMaccmsCategories(ctx, source)
 	}
 	return nil, errors.New("该站源暂未提供分类")
 }

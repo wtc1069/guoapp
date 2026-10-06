@@ -213,3 +213,37 @@ jobs:
           path: dist/ios/*
           if-no-files-found: error
           retention-days: 14
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [android, windows, macos, ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Collect release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          find dist -type f \( -name '*.apk' -o -name '*.zip' -o -name '*.ipa' \) -exec cp {} release-assets/ \;
+          test -n "$(find release-assets -type f -print -quit)"
+          (cd release-assets && sha256sum * > SHA256SUMS.txt)
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "${{ github.repository }}" release-assets/* --clobber
+          else
+            gh release create "$TAG" --repo "${{ github.repository }}" \
+              --title "真果鉴/红果鉴 $TAG" \
+              --generate-notes \
+              release-assets/*
+          fi

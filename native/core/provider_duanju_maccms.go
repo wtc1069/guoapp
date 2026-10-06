@@ -251,8 +251,21 @@ func maccmsSourceIDFromURL(link string) string {
 func (d *Downloader) fetchMaccmsCatalogPage(ctx context.Context, source string, page int, category string) ([]Drama, bool, error) {
 	base := d.duanjuBaseURL(source)
 	address := ""
+	if strings.HasPrefix(category, "maccms:") {
+		decoded, err := url.PathUnescape(strings.TrimPrefix(category, "maccms:"))
+		if err != nil || decoded == "" {
+			return nil, false, errors.New("网页站源分类无效")
+		}
+		address = maccmsCategoryPageURL(source, base, decoded, page)
+		if address == "" {
+			return nil, false, errors.New("网页站源分类无效")
+		}
+	}
 	switch source {
 	case sourceHuaguo:
+		if address != "" {
+			break
+		}
 		if page <= 1 && strings.TrimSpace(category) == "" {
 			address = base + "/"
 		} else {
@@ -263,6 +276,9 @@ func (d *Downloader) fetchMaccmsCatalogPage(ctx context.Context, source string, 
 			address = fmt.Sprintf("%s/search.html?page=%d&searchtype=5&tid=%s&year=", base, page, url.QueryEscape(class))
 		}
 	case sourceFaguo:
+		if address != "" {
+			break
+		}
 		class := strings.TrimSpace(category)
 		if class == "" {
 			address = fmt.Sprintf("%s/xzyxvt/%dzmn.html", base, page)
@@ -272,6 +288,9 @@ func (d *Downloader) fetchMaccmsCatalogPage(ctx context.Context, source string, 
 			return nil, false, errors.New("发果分类无效")
 		}
 	case sourceWuguo:
+		if address != "" {
+			break
+		}
 		class := strings.TrimSpace(category)
 		if class == "" {
 			address = base + "/"
@@ -279,6 +298,9 @@ func (d *Downloader) fetchMaccmsCatalogPage(ctx context.Context, source string, 
 			address = fmt.Sprintf("%s%s/page/%d.html", base, strings.TrimSuffix(class, ".html"), page)
 		}
 	case sourceWangguo:
+		if address != "" {
+			break
+		}
 		class := strings.TrimSpace(category)
 		if class == "" {
 			address = fmt.Sprintf("%s/show/duanju-----------.html", base)
@@ -305,6 +327,77 @@ func (d *Downloader) fetchMaccmsCatalogPage(ctx context.Context, source string, 
 	items := maccmsCards(document, source, base)
 	_ = finalURL
 	return items, len(items) > 0, nil
+}
+
+func (d *Downloader) fetchMaccmsCategories(ctx context.Context, source string) ([]nativeCategory, error) {
+	base := d.duanjuBaseURL(source)
+	baseURL, err := url.Parse(base)
+	if err != nil || baseURL.Host == "" {
+		return nil, errors.New("网页站源地址无效")
+	}
+	document, _, err := d.fetchProviderPage(ctx, base+"/", base+"/", duanjuUserAgent)
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	var categories []nativeCategory
+	for _, anchor := range providerHTMLNodes(document, func(node *html.Node) bool { return node.Data == "a" }) {
+		name := strings.TrimSpace(providerHTMLText(anchor))
+		if name == "" || len([]rune(name)) > 24 {
+			continue
+		}
+		href := strings.TrimSpace(providerHTMLAttr(anchor, "href"))
+		address := duanjuAbsolute(base, href)
+		parsed, parseErr := url.Parse(address)
+		if parseErr != nil || !strings.EqualFold(parsed.Host, baseURL.Host) {
+			continue
+		}
+		path := parsed.Path
+		match := false
+		switch source {
+		case sourceWuguo:
+			match = strings.Contains(path, "/vod/search/class/")
+		case sourceWangguo:
+			match = strings.Contains(path, "/show/") && strings.Contains(path, "---")
+		case sourceFaguo:
+			match = strings.Contains(path, "/xzyxvc/") || strings.Contains(path, "/xzyxvt/")
+		case sourceHuaguo:
+			match = strings.Contains(path, "/zywtype/")
+		}
+		if !match {
+			continue
+		}
+		reference := path
+		if parsed.RawQuery != "" {
+			reference += "?" + parsed.RawQuery
+		}
+		key := "maccms:" + url.PathEscape(reference)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		categories = append(categories, nativeCategory{ID: key, Name: duanjuPlainText(name)})
+	}
+	return categories, nil
+}
+
+func maccmsCategoryPageURL(source, base, reference string, page int) string {
+	parsed, err := url.Parse(strings.TrimSpace(reference))
+	if err != nil || parsed.Path == "" { return "" }
+	page = max(1, page)
+	path := parsed.Path
+	switch source {
+	case sourceWuguo:
+		if page > 1 && !strings.Contains(path, "/page/") {
+			path = strings.TrimSuffix(path, ".html") + "/page/" + strconv.Itoa(page) + ".html"
+		}
+	case sourceWangguo:
+		path = strings.Replace(path, "---.html", strconv.Itoa(page)+"---.html", 1)
+	case sourceFaguo:
+		path = regexp.MustCompile(`(\d+)zmn\.html$`).ReplaceAllString(path, strconv.Itoa(page)+"zmn.html")
+	}
+	parsed.Path, parsed.RawPath = path, ""
+	return strings.TrimRight(base, "/") + parsed.RequestURI()
 }
 
 func (d *Downloader) fetchMaccmsDetail(ctx context.Context, source, sourceID string) (Drama, []Chapter, error) {
